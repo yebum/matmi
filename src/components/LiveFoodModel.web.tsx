@@ -4,7 +4,7 @@ import type { SupportedFood } from '../data/supportedFoods';
 import { findAvailableModel } from '../features/modelAssets';
 import { colors as c } from '../theme';
 
-export function LiveFoodModel({ food }: { food: SupportedFood }) {
+export function LiveFoodModel({ food, width, height }: { food: SupportedFood; width: number; height: number }) {
   const host = useRef<HTMLDivElement>(null);
   const [stage, setStage] = useState<'loading' | 'ready' | 'error'>('loading');
   useEffect(() => {
@@ -36,7 +36,7 @@ export function LiveFoodModel({ food }: { food: SupportedFood }) {
       if (element) { element.removeEventListener('load', onLoad); element.removeEventListener('error', onError); element.remove(); }
     };
   }, [food.id]);
-  return <View style={{ width: 150, height: 112, alignItems: 'center', justifyContent: 'center' }}>
+  return <View style={{ width, height, alignItems: 'center', justifyContent: 'center' }}>
     <div ref={host} style={{ width: '100%', height: '100%' }} />
     {stage !== 'ready' && <Text style={{ position: 'absolute', color: c.ink, fontSize: 11, fontWeight: '600', textAlign: 'center' }}>
       {stage === 'loading' ? `${food.name} detected · loading 3D` : `${food.name} detected · 3D unavailable`}

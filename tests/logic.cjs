@@ -12,6 +12,7 @@ const { calculateTasteMatch } = require('../src/features/tasteMatch.ts');
 const { targetMenuImageSize } = require('../src/features/prepareMenuImage.ts');
 const { modelAssetPaths, findAvailableModel } = require('../src/features/modelAssets.ts');
 const { frameMapping, scanGuide, canvasBoxToVideo, videoBoxToViewport, detectLiveFoods, LiveDetectionTracker } = require('../src/features/liveScanner.ts');
+const { scannerOverlayLayout, smoothOverlayBox } = require('../src/features/scannerOverlayLayout.ts');
 const ids = text => detectSupportedFoods(text).map(food => food.id);
 assert.equal(normalizeMenuText('LÁNGOS'), 'langos');
 assert.equal(normalizeMenuText('PHỞ bò'), 'pho bo');
@@ -37,6 +38,24 @@ for (const [width, height] of [[320, 568], [390, 844], [430, 700], [844, 390]]) 
   assert.ok(Math.abs(mapped.width - guide.width) < 0.01 && Math.abs(mapped.height - guide.height) < 0.01);
   assert.ok(mapping.canvasWidth <= 1100 && mapping.canvasWidth * mapping.canvasHeight <= 900000);
 }
+for (const [width, height] of [[272, 400], [342, 560], [382, 500]]) {
+  const centered = scannerOverlayLayout({ x: width / 2 - 25, y: height / 2, width: 50, height: 24 }, width, height);
+  assert.ok(centered.modelWidth >= 185 && centered.modelHeight >= 155);
+  for (const x of [8, width / 2, width - 70]) {
+    for (const y of [height * 0.22, height * 0.5, height * 0.7]) {
+      const box = { x, y, width: 50, height: 24 };
+      const overlay = scannerOverlayLayout(box, width, height);
+      assert.ok(overlay.modelWidth > 0 && overlay.modelWidth <= 200);
+      assert.ok(overlay.left >= 6 && overlay.left + overlay.modelWidth <= width - 6);
+      assert.ok(overlay.top >= 6 && overlay.top + overlay.modelHeight + 26 <= height - 6);
+      if (overlay.placement === 'above') assert.ok(overlay.top + overlay.modelHeight + 26 <= box.y - 4);
+      else assert.ok(overlay.top >= box.y + box.height + 5);
+    }
+  }
+}
+assert.deepEqual(smoothOverlayBox({ x: 10, y: 20, width: 50, height: 20 }, { x: 30, y: 40, width: 70, height: 28 }),
+  { x: 25, y: 35, width: 65, height: 26 });
+assert.equal(smoothOverlayBox({ x: 0, y: 0, width: 50, height: 20 }, { x: 100, y: 0, width: 50, height: 20 }).x, 100);
 const liveLines = [{ text: 'PAD THAI 320', confidence: 70, bbox: { x: 10, y: 20, width: 180, height: 30 }, words: [
   { text: 'PAD', confidence: 72, bbox: { x: 10, y: 20, width: 50, height: 30 } },
   { text: 'THAI', confidence: 80, bbox: { x: 64, y: 20, width: 64, height: 30 } },

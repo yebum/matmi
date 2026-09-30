@@ -5,6 +5,7 @@ import Close from '../../assets/figma/close.svg';
 import { getSupportedFood } from '../data/supportedFoods';
 import { canvasBoxToVideo, detectLiveFoods, frameMapping, LiveDetectionTracker, scanGuide, videoBoxToViewport,
   type Box, type LiveFoodDetection } from '../features/liveScanner';
+import { scannerOverlayLayout, smoothOverlayBox } from '../features/scannerOverlayLayout';
 import { LiveMenuOCR } from '../services/ocr/liveOcr';
 import { useProfile } from '../store/ProfileContext';
 import { colors as c } from '../theme';
@@ -71,7 +72,11 @@ export default function LiveScanner() {
         const result = await ocr.recognize(canvas);
         if (!live) return;
         const candidates = detectLiveFoods(result.lines).map(item => ({ ...item, bbox: canvasBoxToVideo(item.bbox, mapping) }));
-        setDetections(tracker.update(candidates, performance.now()));
+        const confirmed = tracker.update(candidates, performance.now());
+        setDetections(previous => confirmed.map(item => {
+          const prior = previous.find(existing => existing.foodId === item.foodId);
+          return prior ? { ...item, bbox: smoothOverlayBox(prior.bbox, item.bbox) } : item;
+        }));
         setOcrError(null);
         if (debugEnabled) setDebug({ elapsedMs: result.elapsedMs, rawText: result.rawText,
           confidence: result.confidence, detected: candidates.map(item => item.foodId).join(', ') || 'none',
@@ -103,7 +108,10 @@ export default function LiveScanner() {
         setCameraState('ready');
         await ocr.initialize();
         if (!live) return;
-        ticker = setInterval(() => setDetections(tracker.current(performance.now())), 500);
+        ticker = setInterval(() => {
+          const visible = new Set(tracker.current(performance.now()).map(item => item.foodId));
+          setDetections(previous => previous.filter(item => visible.has(item.foodId)));
+        }, 500);
         void sample();
       } catch (error) {
         if (permissionTimer) clearTimeout(permissionTimer);
@@ -141,9 +149,7 @@ export default function LiveScanner() {
   const openDetail = (id: string) => router.push({ pathname: '/food/[id]', params: { id } });
   const markerPosition = (box: Box) => ({ left: clamp(box.x, 6, Math.max(6, viewport.width - 130)),
     top: clamp(box.y + box.height + 5, 6, Math.max(6, viewport.height - 40)) });
-  const modelPosition = active && ({ left: clamp(active.screenBox.x + active.screenBox.width / 2 - 75, 6, Math.max(6, viewport.width - 156)),
-    top: active.screenBox.y >= 156 ? active.screenBox.y - 148 :
-      clamp(active.screenBox.y + active.screenBox.height + 44, 6, Math.max(6, viewport.height - 120)) });
+  const activeLayout = active && scannerOverlayLayout(active.screenBox, viewport.width, viewport.height);
 
   return <Screen contentStyle={s.root}>{picker.inputs}
     <View style={s.header}><Pressable accessibilityLabel="Close scanner" onPress={() => router.push('/home')} style={s.close}><Close width={18} height={18} /></Pressable>
@@ -153,20 +159,20 @@ export default function LiveScanner() {
         <video ref={videoRef} autoPlay muted playsInline aria-label="Live menu camera" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'none', display: 'block' }} />
         {cameraState === 'ready' && guide && <View pointerEvents="none" style={[s.guide, { left: guide.x, top: guide.y, width: guide.width, height: guide.height }]} />}
         {cameraState !== 'ready' && <View style={s.cameraMessage}><Text style={s.cameraMessageText}>{cameraMessage}</Text></View>}
-        {cameraState === 'ready' && displayed.map(item => {
+        {cameraState === 'ready' && displayed.filter(item => item.foodId !== activeId).map(item => {
           const food = getSupportedFood(item.foodId);
           if (!food) return null;
-          const isActive = item.foodId === activeId;
           return <Pressable key={item.foodId} accessibilityRole="button"
-            accessibilityLabel={`${food.name}, ${matchFor(food).score}% match${isActive ? ', open Food Lens' : ', select 3D preview'}`}
-            onPress={() => isActive ? openDetail(food.id) : setActiveId(food.id)}
-            style={[s.marker, markerPosition(item.screenBox), isActive && s.activeMarker]}>
+            accessibilityLabel={`${food.name}, ${matchFor(food).score}% match, select 3D preview`}
+            onPress={() => setActiveId(food.id)} style={[s.marker, markerPosition(item.screenBox)]}>
             <Text style={s.markerText}>{food.name} · {matchFor(food).score}% Match</Text>
           </Pressable>;
         })}
-        {activeFood && modelPosition && <Pressable accessibilityRole="button" accessibilityLabel={`Open ${activeFood.name} Food Lens`}
-          onPress={() => openDetail(activeFood.id)} style={[s.modelAnchor, modelPosition]}>
-          <LiveFoodModel key={activeFood.id} food={activeFood} />
+        {activeFood && activeLayout && <Pressable accessibilityRole="button" accessibilityLabel={`Open ${activeFood.name} Food Lens`}
+          onPress={() => openDetail(activeFood.id)} style={[s.activeOverlay, { left: activeLayout.left, top: activeLayout.top, width: activeLayout.modelWidth }]}>
+          {activeLayout.placement === 'below' && <View style={s.activeLabel}><Text style={s.markerText}>{activeFood.name} · {matchFor(activeFood).score}% Match</Text></View>}
+          <LiveFoodModel key={activeFood.id} food={activeFood} width={activeLayout.modelWidth} height={activeLayout.modelHeight} />
+          {activeLayout.placement === 'above' && <View style={s.activeLabel}><Text style={s.markerText}>{activeFood.name} · {matchFor(activeFood).score}% Match</Text></View>}
         </Pressable>}
       </>}
     </View>
@@ -192,13 +198,14 @@ const s = StyleSheet.create({
   root: { paddingTop: 6, paddingBottom: 12 }, header: { height: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   close: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.gray, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { color: c.ink, fontSize: 16, fontWeight: '600' },
-  viewport: { flex: 1, minHeight: 180, borderRadius: 28, backgroundColor: c.ink, overflow: 'hidden', position: 'relative' },
+  viewport: { flex: 1, minHeight: 400, borderRadius: 28, backgroundColor: c.ink, overflow: 'hidden', position: 'relative' },
   preview: { width: '100%', height: '100%' }, guide: { position: 'absolute', borderWidth: 1, borderColor: 'rgba(255,255,255,0.78)', borderRadius: 18 },
   cameraMessage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', padding: 24 },
   cameraMessageText: { color: c.white, textAlign: 'center', fontSize: 14, lineHeight: 20 },
   marker: { position: 'absolute', minWidth: 120, maxWidth: 190, minHeight: 30, borderRadius: 12, backgroundColor: 'rgba(25,25,30,0.85)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8, paddingVertical: 5 },
-  activeMarker: { backgroundColor: c.blue }, markerText: { color: c.white, fontSize: 11, fontWeight: '600', textAlign: 'center' },
-  modelAnchor: { position: 'absolute', width: 150, height: 112, alignItems: 'center', justifyContent: 'center' },
+  markerText: { color: c.white, fontSize: 11, fontWeight: '600', textAlign: 'center' },
+  activeOverlay: { position: 'absolute', alignItems: 'center' },
+  activeLabel: { width: '100%', minHeight: 26, borderRadius: 12, backgroundColor: c.blue, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8, paddingVertical: 3 },
   prompt: { color: c.ink, fontSize: 15, fontWeight: '600', textAlign: 'center', marginTop: 14 },
   hint: { color: c.muted, fontSize: 11, textAlign: 'center', marginTop: 5, marginBottom: 10 },
   error: { color: '#B85037', fontSize: 12, textAlign: 'center', marginBottom: 8 },

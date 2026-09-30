@@ -3,7 +3,6 @@ import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors as c } from '../theme';
-import StatusIcon from '../../assets/figma/status.svg';
 import BackIcon from '../../assets/figma/back.svg';
 import HomeDark from '../../assets/figma/home-dark.svg';
 import HomeMuted from '../../assets/figma/home-muted.svg';
@@ -14,7 +13,7 @@ import UserDark from '../../assets/figma/user-dark.svg';
 
 export function Screen({ children, nav, scroll = true, contentStyle }: { children: ReactNode; nav?: 'home' | 'camera' | 'profile'; scroll?: boolean; contentStyle?: ViewStyle }) {
   const insets = useSafeAreaInsets();
-  return <View style={[s.screen, Platform.OS !== 'web' && { paddingTop: insets.top, paddingBottom: insets.bottom }]}>{Platform.OS === 'web' && <View style={s.status}><Text style={s.time}>9:41</Text><StatusIcon width={78} height={20} /></View>}
+  return <View style={[s.screen, Platform.OS === 'web' ? { paddingTop: Math.max(16, insets.top) } : { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
     {scroll ? <ScrollView style={s.body} contentContainerStyle={[s.content, s.scrollContent, contentStyle, nav && { paddingBottom: 32 }]} showsVerticalScrollIndicator={false}>{children}</ScrollView>
       : <View style={[s.body, s.content, contentStyle]}>{children}</View>}
     {nav && <FloatingBottomNav active={nav} />}
@@ -49,7 +48,6 @@ export function FloatingBottomNav({ active }: { active: 'home' | 'camera' | 'pro
 export const textStyles = StyleSheet.create({ heading: { color: c.ink, fontSize: 28, lineHeight: 32, fontWeight: '600' }, body: { color: c.muted, fontSize: 14, lineHeight: 20 }, label: { color: c.blue, fontSize: 11, lineHeight: 14, fontWeight: '600' } });
 const s = StyleSheet.create({
   screen: { flex: 1, minHeight: 0, backgroundColor: c.white, maxWidth: 430, width: '100%', alignSelf: 'center' },
-  status: { height: 52, paddingHorizontal: 24, paddingTop: 14, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, time: { color: c.ink, fontSize: 15, fontWeight: '600' },
   body: { flex: 1, minHeight: 0 }, content: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 20 }, scrollContent: { flexGrow: 1 },
   primaryButton: { height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: c.blue, width: '100%' }, lightButton: { backgroundColor: c.white }, primaryText: { color: c.white, fontSize: 16, fontWeight: '600' },
   secondaryButton: { height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.line, backgroundColor: c.white, width: '100%' }, secondaryText: { color: c.ink, fontSize: 15, fontWeight: '600' },
