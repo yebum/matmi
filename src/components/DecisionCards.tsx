@@ -23,16 +23,16 @@ export function ScanHistoryCard({ scan, dish, score, onPress }: { scan: SavedSca
 }
 
 const s = StyleSheet.create({
-  compare: { height: 210, borderRadius: 24, padding: 16, gap: 10, marginBottom: 14 },
+  compare: { minHeight: 210, borderRadius: 24, padding: 16, gap: 10, marginBottom: 14 },
   compareHead: { height: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   compareName: { color: c.ink, fontSize: 18, lineHeight: 23, fontWeight: '600' },
   score: { width: 76, height: 32, borderRadius: 16, backgroundColor: c.white, justifyContent: 'center', alignItems: 'center' },
   scoreText: { color: c.ink, fontSize: 12, fontWeight: '700' },
   character: { color: c.muted, fontSize: 12, lineHeight: 16 },
-  fact: { height: 25, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  fact: { minHeight: 25, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   factLabel: { color: c.muted, fontSize: 11, fontWeight: '500' },
-  factValue: { color: c.ink, fontSize: 11, fontWeight: '600' },
-  history: { height: 128, backgroundColor: c.light, borderRadius: 22, paddingHorizontal: 16, paddingVertical: 15, gap: 10 },
+  factValue: { color: c.ink, fontSize: 11, fontWeight: '600', textAlign: 'right', flexShrink: 1 },
+  history: { minHeight: 128, backgroundColor: c.light, borderRadius: 22, paddingHorizontal: 16, paddingVertical: 15, gap: 10 },
   placeRow: { height: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   place: { color: c.ink, fontSize: 14, fontWeight: '600' }, date: { color: c.muted, fontSize: 11 },
   dishRow: { height: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

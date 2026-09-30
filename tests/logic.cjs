@@ -11,6 +11,7 @@ const { getSupportedFood } = require('../src/data/supportedFoods.ts');
 const { calculateTasteMatch } = require('../src/features/tasteMatch.ts');
 const { targetMenuImageSize } = require('../src/features/prepareMenuImage.ts');
 const { modelAssetPaths, findAvailableModel } = require('../src/features/modelAssets.ts');
+const { frameMapping, scanGuide, canvasBoxToVideo, videoBoxToViewport, detectLiveFoods, LiveDetectionTracker } = require('../src/features/liveScanner.ts');
 const ids = text => detectSupportedFoods(text).map(food => food.id);
 assert.equal(normalizeMenuText('LÁNGOS'), 'langos');
 assert.equal(normalizeMenuText('PHỞ bò'), 'pho bo');
@@ -28,6 +29,28 @@ assert.equal(calculateTasteMatch(food, profile).score, original);
 assert.ok(calculateTasteMatch(food, { ...profile, likes: [] }).score < original);
 assert.deepEqual(targetMenuImageSize(1200, 800), { width: 1200, height: 800 });
 assert.deepEqual(targetMenuImageSize(8000, 6000), { width: 3200, height: 2400 });
+for (const [width, height] of [[320, 568], [390, 844], [430, 700], [844, 390]]) {
+  const mapping = frameMapping(1920, 1080, width, height);
+  const guide = scanGuide(width, height);
+  const mapped = videoBoxToViewport(canvasBoxToVideo({ x: 0, y: 0, width: mapping.canvasWidth, height: mapping.canvasHeight }, mapping), mapping);
+  assert.ok(Math.abs(mapped.x - guide.x) < 0.01 && Math.abs(mapped.y - guide.y) < 0.01);
+  assert.ok(Math.abs(mapped.width - guide.width) < 0.01 && Math.abs(mapped.height - guide.height) < 0.01);
+  assert.ok(mapping.canvasWidth <= 1100 && mapping.canvasWidth * mapping.canvasHeight <= 900000);
+}
+const liveLines = [{ text: 'PAD THAI 320', confidence: 70, bbox: { x: 10, y: 20, width: 180, height: 30 }, words: [
+  { text: 'PAD', confidence: 72, bbox: { x: 10, y: 20, width: 50, height: 30 } },
+  { text: 'THAI', confidence: 80, bbox: { x: 64, y: 20, width: 64, height: 30 } },
+  { text: '320', confidence: 95, bbox: { x: 150, y: 20, width: 40, height: 30 } },
+] }];
+assert.deepEqual(detectLiveFoods(liveLines).map(item => item.foodId), ['pad-thai']);
+assert.deepEqual(detectLiveFoods(liveLines)[0].bbox, { x: 10, y: 20, width: 118, height: 30 });
+assert.deepEqual(detectLiveFoods([{ ...liveLines[0], text: 'GULYAS 320' }]), []);
+const tracker = new LiveDetectionTracker();
+const candidate = detectLiveFoods(liveLines)[0];
+assert.deepEqual(tracker.update([{ ...candidate, confidence: 55 }], 1000), []);
+assert.equal(tracker.update([{ ...candidate, confidence: 55 }], 2000)[0].foodId, 'pad-thai');
+assert.equal(tracker.update([], 3400)[0].foodId, 'pad-thai');
+assert.deepEqual(tracker.update([], 3700), []);
 async function checkModelPaths() {
   assert.deepEqual(modelAssetPaths(food), { glb: '/models/langos.glb', usdz: '/models/langos.usdz' });
   const originalFetch = global.fetch;
@@ -40,4 +63,4 @@ async function checkModelPaths() {
     assert.deepEqual(await findAvailableModel(food), { src: '/models/langos.glb', iosSrc: '/models/langos.usdz' });
   } finally { global.fetch = originalFetch; }
 }
-checkModelPaths().then(() => console.log('Recognition A–D, score E, image sizing, and model-path checks passed.')).catch(error => { console.error(error); process.exitCode = 1; });
+checkModelPaths().then(() => console.log('Recognition, Taste Match, image sizing, model paths, live boxes, and detection stability passed.')).catch(error => { console.error(error); process.exitCode = 1; });

@@ -12,10 +12,10 @@ import CameraMuted from '../../assets/figma/camera-muted.svg';
 import UserMuted from '../../assets/figma/user-muted.svg';
 import UserDark from '../../assets/figma/user-dark.svg';
 
-export function Screen({ children, nav, scroll = false, contentStyle }: { children: ReactNode; nav?: 'home' | 'camera' | 'profile'; scroll?: boolean; contentStyle?: ViewStyle }) {
+export function Screen({ children, nav, scroll = true, contentStyle }: { children: ReactNode; nav?: 'home' | 'camera' | 'profile'; scroll?: boolean; contentStyle?: ViewStyle }) {
   const insets = useSafeAreaInsets();
   return <View style={[s.screen, Platform.OS !== 'web' && { paddingTop: insets.top, paddingBottom: insets.bottom }]}>{Platform.OS === 'web' && <View style={s.status}><Text style={s.time}>9:41</Text><StatusIcon width={78} height={20} /></View>}
-    {scroll ? <ScrollView style={s.body} contentContainerStyle={[s.content, contentStyle, nav && { paddingBottom: 24 }]} showsVerticalScrollIndicator={false}>{children}</ScrollView>
+    {scroll ? <ScrollView style={s.body} contentContainerStyle={[s.content, s.scrollContent, contentStyle, nav && { paddingBottom: 32 }]} showsVerticalScrollIndicator={false}>{children}</ScrollView>
       : <View style={[s.body, s.content, contentStyle]}>{children}</View>}
     {nav && <FloatingBottomNav active={nav} />}
   </View>;
@@ -48,15 +48,15 @@ export function FloatingBottomNav({ active }: { active: 'home' | 'camera' | 'pro
 }
 export const textStyles = StyleSheet.create({ heading: { color: c.ink, fontSize: 28, lineHeight: 32, fontWeight: '600' }, body: { color: c.muted, fontSize: 14, lineHeight: 20 }, label: { color: c.blue, fontSize: 11, lineHeight: 14, fontWeight: '600' } });
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: c.white, maxWidth: 430, width: '100%', alignSelf: 'center' },
+  screen: { flex: 1, minHeight: 0, backgroundColor: c.white, maxWidth: 430, width: '100%', alignSelf: 'center' },
   status: { height: 52, paddingHorizontal: 24, paddingTop: 14, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, time: { color: c.ink, fontSize: 15, fontWeight: '600' },
-  body: { flex: 1 }, content: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 20 },
+  body: { flex: 1, minHeight: 0 }, content: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 20 }, scrollContent: { flexGrow: 1 },
   primaryButton: { height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: c.blue, width: '100%' }, lightButton: { backgroundColor: c.white }, primaryText: { color: c.white, fontSize: 16, fontWeight: '600' },
   secondaryButton: { height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.line, backgroundColor: c.white, width: '100%' }, secondaryText: { color: c.ink, fontSize: 15, fontWeight: '600' },
   header: { height: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 }, roundButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.gray, alignItems: 'center', justifyContent: 'center' }, headerTitle: { color: c.ink, fontSize: 16, fontWeight: '600' },
   progress: { width: 96, height: 5, borderRadius: 3, backgroundColor: c.line, marginTop: 18, marginBottom: 18 }, progressFill: { height: 5, borderRadius: 3, backgroundColor: c.blue }, step: { color: c.blue, fontSize: 12, lineHeight: 13, fontWeight: '600', marginBottom: 18 },
   tag: { backgroundColor: c.gray, borderRadius: 16, height: 32, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' }, tagText: { fontSize: 12, color: c.ink, fontWeight: '500' },
   match: { minWidth: 78, height: 32, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center', borderRadius: 17 }, matchText: { color: c.ink, fontSize: 12, fontWeight: '700' },
-  foodCard: { borderRadius: 20, backgroundColor: c.light, padding: 15 }, preferenceCard: { height: 254, overflow: 'hidden', borderRadius: 26, backgroundColor: c.light, paddingHorizontal: 18, paddingTop: 22, paddingBottom: 20 },
+  foodCard: { borderRadius: 20, backgroundColor: c.light, padding: 15 }, preferenceCard: { minHeight: 254, borderRadius: 26, backgroundColor: c.light, paddingHorizontal: 18, paddingTop: 22, paddingBottom: 20 },
   navArea: { height: 88, alignItems: 'center', paddingTop: 5, gap: 8 }, nav: { width: 246, height: 58, borderRadius: 29, paddingHorizontal: 8, paddingVertical: 6, backgroundColor: c.black, flexDirection: 'row', justifyContent: 'space-between' }, navItem: { width: 48, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' }, navActive: { backgroundColor: c.white }, homeIndicator: { width: 118, height: 4, borderRadius: 2, backgroundColor: c.black },
 });

@@ -1,8 +1,8 @@
 # MATMI
 
-Responsive Expo Router web MVP for reading a menu photo and explaining five selected dishes: **Tteokbokki, Phở, Pad Thai, Nasi Goreng, and Lángos**. The existing mobile screen layout remains in place.
+Responsive Expo Router web MVP for recognizing five selected dishes from a live menu camera: **Tteokbokki, Phở, Pad Thai, Nasi Goreng, and Lángos**. The existing photo OCR flow remains available as a fallback.
 
-The welcome screen uses the supplied MATMI logo at `public/brand/matmi-logo.webp`. `MatmiLogo` preserves its aspect ratio and falls back to MATMI text if the image cannot load. When the final PNG arrives, place it at `public/brand/matmi-logo.png` and change the one asset path in `src/components/MatmiLogo.tsx`. The existing browser storage key keeps prior local profiles after the rename.
+The welcome screen uses the latest supplied MATMI logo at `public/brand/matmi-logo.webp`. `MatmiLogo` preserves its aspect ratio and falls back to MATMI text if the image cannot load. The existing browser storage key keeps prior local profiles after the rename.
 
 ## Run and validate
 
@@ -15,11 +15,13 @@ npm run export:web
 npm run preview:web
 ```
 
-Open the local URL shown by Expo. On Home, **Scan a menu** opens the browser's camera-oriented image picker (`accept="image/*" capture="environment"`); **Upload a photo instead** opens the normal image picker. The scanner shows a preview, lets the user retake or replace it, and starts OCR only after **Analyze image**. Image selection is limited to valid, loadable images under 15 MB. Cancelling the picker leaves the current screen intact.
+Open the local URL shown by Expo. On Home, **Scan a menu** opens the in-app live camera scanner. It requests the rear camera through `getUserMedia`, samples the central guide region at most once per completed OCR job, and places one active 3D model above confirmed menu text. Tapping the active model or label opens Food Lens. Camera tracks and the live OCR worker stop when the scanner loses focus. If camera access fails, **Upload menu photo** and **Take a photo instead** use the existing file picker path. Photo selection shows a preview and **Analyze image** continues through the existing four-language still-image OCR and results screens. Image selection is limited to valid, loadable images under 15 MB.
 
 ## OCR and recognition
 
 `src/services/ocr/ocrService.ts` defines the OCR interface and a Tesseract.js browser adapter. It runs OCR on the user's device, using English, Vietnamese, Korean, and Thai language data. The library downloads its worker, WebAssembly core, and language data over HTTPS on first use, so first scans can take longer and scanning requires a network connection unless those assets are later self-hosted. OCR failure or timeout shows a retryable error; no sample text is substituted.
+
+The live scanner uses a separate persistent English Tesseract worker with sparse-text page segmentation and block output. `src/features/liveScanner.ts` maps OCR boxes from a bounded canvas ROI through the video `object-fit: cover` crop into the visible viewport. Supported foods are confirmed at high confidence or after two scans, held for 1.6 seconds after a temporary miss, and only one confirmed food model is mounted at a time. The normal still-photo OCR worker remains unchanged. Add `?ocrDebug=1` to the scanner URL in a development build to see timing, raw text, confidence, detections, boxes, and worker state; this panel is disabled in production.
 
 `src/features/prepareMenuImage.ts` leaves ordinary images untouched. Photos over 3200 pixels on their longest side or 9 megapixels are drawn to a canvas at no more than those limits and encoded as high-quality JPEG before OCR. A browser canvas failure falls back to the original image. This cap reduced a 6000×4000 test menu to 3200×2133 while still detecting Lángos; real phone photos need further testing.
 
@@ -29,13 +31,13 @@ Open the local URL shown by Expo. On Home, **Scan a menu** opens the browser's c
 
 ## Test fixtures
 
-`tests/fixtures/` contains generated PNG menus for cases A–D, an all-five development menu, and a large-image sizing fixture. Regenerate on Windows with `Get-Content -Raw scripts/generate-fixtures.ps1 | Invoke-Expression`. `npm run test:logic` checks recognition, deterministic scoring, image size limits, and model-asset checks. Image OCR was manually exercised in the browser with A–D, all five dishes, and the resized large image. OCR quality on real, angled, handwritten, or low-light menus is not guaranteed.
+`tests/fixtures/` contains generated PNG menus for cases A–D, an all-five development menu, and a large-image sizing fixture. Regenerate on Windows with `Get-Content -Raw scripts/generate-fixtures.ps1 | Invoke-Expression`. `npm run test:logic` checks recognition, deterministic scoring, image size limits, model paths, live detection stability, and cover-crop coordinate mapping. `node scripts/benchmark-live-ocr.cjs` runs both workers on the five menu fixtures and asserts exact supported-food detections with OCR word boxes. Local English sparse-text OCR averaged 130 ms per fixture versus 207 ms for the four-language worker in one run; real camera latency and OCR quality need device testing.
 
 ## Deployment
 
 The project exports a single-page app to `dist`. `vercel.json` sets the build command, output directory, deep-link rewrite, and model MIME headers. Expo copies files from `public/` into `dist/`. Import a committed repository into Vercel, or from a linked Vercel project run `npx vercel --prod`. No environment variables or API keys are required. Serve over HTTPS for mobile camera capture and WebXR. The site has no localhost dependency after export; OCR currently depends on the public Tesseract.js CDNs. A local static preview verified direct route refresh at `/food/langos`, browser storage, image upload, OCR, and missing-model behavior; actual Vercel HTTPS deployment remains untested.
 
-Use the Hexagon Vercel team and `matmi` as the project name when importing the repository at <https://vercel.com/new?teamSlug=hexagon>. No Git remote is configured yet. The web export adds MATMI description and social title tags to `dist/index.html` after Expo's single-page export.
+Use the Hexagon Vercel team and `matmi` as the project name when importing <https://github.com/yebum/matmi> at <https://vercel.com/new?teamSlug=hexagon>. The web export adds MATMI description and social title tags to `dist/index.html` after Expo's single-page export.
 
 ## 3D and AR assets
 
@@ -45,4 +47,4 @@ Five real GLB food assets are included at the conventional paths. They were copi
 
 ## Physical mobile release check
 
-On an HTTPS Vercel preview, test iPhone Safari and Android Chrome: tap **Scan a menu** to confirm the camera opens, take a real menu photo, replace it from the library, inspect the preview, finish OCR, refresh to confirm profile persistence, and retry after a deliberately interrupted network request. After food models are added, verify rotation/zoom and AR on supported devices, plus the 3D fallback on an unsupported device.
+On an HTTPS Vercel preview, test iPhone Safari and Android Chrome: tap **Scan a menu**, grant rear-camera access, point at a clear LÁNGOS menu line, wait for its anchored 3D overlay, tap through to Food Lens, and check that the camera stops on navigation. Also test denial and the photo-upload fallback, profile persistence, rotation and zoom on Food Lens, and device-gated AR. No physical phone or production HTTPS validation has occurred yet.
