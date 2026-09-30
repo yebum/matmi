@@ -24,8 +24,8 @@ export function ScanHistoryCard({ scan, dish, score, onPress }: { scan: SavedSca
 
 const s = StyleSheet.create({
   compare: { minHeight: 210, borderRadius: 24, padding: 16, gap: 10, marginBottom: 14 },
-  compareHead: { height: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  compareName: { color: c.ink, fontSize: 18, lineHeight: 23, fontWeight: '600' },
+  compareHead: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  compareName: { color: c.ink, fontSize: 18, lineHeight: 23, fontWeight: '600', flexShrink: 1 },
   score: { width: 76, height: 32, borderRadius: 16, backgroundColor: c.white, justifyContent: 'center', alignItems: 'center' },
   scoreText: { color: c.ink, fontSize: 12, fontWeight: '700' },
   character: { color: c.muted, fontSize: 12, lineHeight: 16 },
