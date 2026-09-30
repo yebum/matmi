@@ -15,7 +15,22 @@ const { targetMenuImageSize } = require('../src/features/prepareMenuImage.ts');
 const { modelAssetPaths, findAvailableModel } = require('../src/features/modelAssets.ts');
 const { frameMapping, scanGuide, canvasBoxToVideo, videoBoxToViewport, detectLiveFoods, LiveDetectionTracker } = require('../src/features/liveScanner.ts');
 const { scannerOverlayLayout, smoothOverlayBox } = require('../src/features/scannerOverlayLayout.ts');
+const { emptyReviewDraft, validateReview, summarizeCommunity } = require('../src/features/communityLens.ts');
 const ids = text => detectSupportedFoods(text).map(food => food.id);
+const reviewDraft = { remindedOf: 'A savory hotteok', culturalDescription: '', familiarityScore: 7, likingScore: 8, matmiAccuracyScore: 9 };
+assert.equal(validateReview('langos', 'Korean', reviewDraft), null);
+assert.match(validateReview('unknown', 'Korean', reviewDraft), /unavailable/);
+assert.match(validateReview('langos', 'Spanish', reviewDraft), /culture/);
+assert.match(validateReview('langos', 'Korean', emptyReviewDraft()), /Share a little/);
+assert.match(validateReview('langos', 'Korean', { ...reviewDraft, remindedOf: 'asdf' }), /Share a little/);
+assert.match(validateReview('langos', 'Korean', { ...reviewDraft, remindedOf: 'x'.repeat(161) }), /shorten/);
+assert.match(validateReview('langos', 'Korean', { ...reviewDraft, likingScore: 11 }), /score/);
+const example = (id, isDemo, likingScore, culture = 'Korean') => ({ id, foodId: 'langos', culture, remindedOf: `Comparison ${id}`, culturalDescription: '', familiarityScore: 6, likingScore, matmiAccuracyScore: 8, createdAt: `2026-10-01T00:00:0${id}Z`, isDemo });
+const demoSummary = summarizeCommunity([example('1', true, 7), example('2', true, 9)], 'langos', 'Korean');
+assert.deepEqual([demoSummary.count, demoSummary.demo, demoSummary.liking, demoSummary.quotes.length], [2, true, 8, 2]);
+const realSummary = summarizeCommunity([example('1', true, 7), example('2', false, 4), example('3', false, 8), example('4', false, 10, 'Thai')], 'langos', 'Korean');
+assert.deepEqual([realSummary.count, realSummary.demo, realSummary.liking], [2, false, 6]);
+assert.equal(summarizeCommunity([], 'langos', 'Korean').count, 0);
 assert.equal(normalizeMenuText('LÁNGOS'), 'langos');
 assert.equal(normalizeMenuText('PHỞ bò'), 'pho bo');
 assert.equal(normalizeMenuText('떡볶이 ผัดไทย'), '떡볶이 ผัดไทย');
@@ -114,4 +129,4 @@ async function checkModelPaths() {
     assert.deepEqual(await findAvailableModel(food), { src: '/models/langos.glb', iosSrc: '/models/langos.usdz' });
   } finally { global.fetch = originalFetch; }
 }
-checkModelPaths().then(() => console.log('Personalization, recognition, Taste Match, image sizing, model paths, live boxes, and detection stability passed.')).catch(error => { console.error(error); process.exitCode = 1; });
+checkModelPaths().then(() => console.log('Community Lens, personalization, recognition, Taste Match, image sizing, model paths, live boxes, and detection stability passed.')).catch(error => { console.error(error); process.exitCode = 1; });

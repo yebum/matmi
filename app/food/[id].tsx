@@ -10,6 +10,7 @@ import { useProfile } from '../../src/store/ProfileContext';
 import { colors as c } from '../../src/theme';
 import { FoodModelPreview } from '../../src/components/FoodModelPreview';
 import { AllergenWarning } from '../../src/components/AllergenWarning';
+import { CommunityLens } from '../../src/components/CommunityLens';
 
 export default function FoodDetail() {
   const router = useRouter();
@@ -29,6 +30,7 @@ export default function FoodDetail() {
     <View style={s.familiar}><Text style={s.sectionLabel}>MAKE IT FAMILIAR</Text><Text style={s.comparison}>{comparison}</Text><Text style={s.context}>{dish.description}</Text></View>
     <FoodModelPreview food={dish} />
     <View style={s.why}><Text style={s.whyTitle}>Why it matches you</Text>{match.positiveReasons.length === 0 && <Text style={s.reasonText}>A new taste to explore based on your profile.</Text>}{match.positiveReasons.slice(0, 3).map(reason => <View key={reason} style={s.reason}><View style={s.reasonIcon}><Check width={12} height={12} /></View><Text style={s.reasonText}>{reason}</Text></View>)}{warnings.map((caution, index) => <Text key={caution} style={[s.caution, index === 0 && s.firstCaution]}>{caution}</Text>)}</View>
+    <CommunityLens foodId={dish.id} culture={culture} onShare={() => router.push(`/review/${dish.id}` as never)} />
     <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/ingredients/[id]', params: { id: dish.id } })} style={s.ingredients}><Text style={s.ingredientsLabel}>Typical ingredients</Text><Chevron width={17} height={17} /></Pressable>
     <View style={s.tryButton}><PrimaryButton title="Try this" onPress={() => router.push({ pathname: '/try/[id]', params: { id: dish.id } })} /></View>
   </Screen>;
