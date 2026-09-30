@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Image, Platform, StyleSheet, Text } from 'react-native';
 import { colors as c } from '../theme';
 
-// Switch this path to /brand/matmi-logo.png when the final PNG is supplied.
 const logoPath = '/brand/matmi-logo.webp';
 
 export function MatmiLogo({ size = 252 }: { size?: number }) {

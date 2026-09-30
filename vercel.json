@@ -4,6 +4,7 @@
   "buildCommand": "npm run export:web",
   "outputDirectory": "dist",
   "headers": [
+    { "source": "/manifest.webmanifest", "headers": [{ "key": "Content-Type", "value": "application/manifest+json" }] },
     { "source": "/models/(.*)\\.glb", "headers": [{ "key": "Content-Type", "value": "model/gltf-binary" }] },
     { "source": "/models/(.*)\\.usdz", "headers": [{ "key": "Content-Type", "value": "model/vnd.usdz+zip" }] }
   ],
