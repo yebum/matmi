@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "AI Food Lens",
-    "slug": "ai-food-lens",
+    "name": "MATMI",
+    "slug": "matmi",
     "scheme": "aifoodlens",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "plugins": ["expo-router", ["expo-image-picker", {"photosPermission": "Choose a menu photo to explore its dishes.", "cameraPermission": "Photograph a menu to explore its dishes."}]],
-    "web": {"name": "AI Food Lens", "bundler": "metro", "output": "single"},
+    "web": {"name": "MATMI", "bundler": "metro", "output": "single"},
     "experiments": {"typedRoutes": true}
   }
 }

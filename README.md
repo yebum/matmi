@@ -1,6 +1,8 @@
-# AI Food Lens
+# MATMI
 
-Responsive Expo Router web MVP for reading a menu photo and explaining five selected dishes: **Tteokbokki, Phở, Pad Thai, Nasi Goreng, and Lángos**. The original mobile screen layout and vector artwork remain in place.
+Responsive Expo Router web MVP for reading a menu photo and explaining five selected dishes: **Tteokbokki, Phở, Pad Thai, Nasi Goreng, and Lángos**. The existing mobile screen layout remains in place.
+
+The welcome screen uses the supplied MATMI logo at `public/brand/matmi-logo.webp`. `MatmiLogo` preserves its aspect ratio and falls back to MATMI text if the image cannot load. When the final PNG arrives, place it at `public/brand/matmi-logo.png` and change the one asset path in `src/components/MatmiLogo.tsx`. The existing browser storage key keeps prior local profiles after the rename.
 
 ## Run and validate
 
@@ -32,6 +34,8 @@ Open the local URL shown by Expo. On Home, **Scan a menu** opens the browser's c
 ## Deployment
 
 The project exports a single-page app to `dist`. `vercel.json` sets the build command, output directory, deep-link rewrite, and model MIME headers. Expo copies files from `public/` into `dist/`. Import a committed repository into Vercel, or from a linked Vercel project run `npx vercel --prod`. No environment variables or API keys are required. Serve over HTTPS for mobile camera capture and WebXR. The site has no localhost dependency after export; OCR currently depends on the public Tesseract.js CDNs. A local static preview verified direct route refresh at `/food/langos`, browser storage, image upload, OCR, and missing-model behavior; actual Vercel HTTPS deployment remains untested.
+
+Use the Hexagon Vercel team and `matmi` as the project name when importing the repository at <https://vercel.com/new?teamSlug=hexagon>. No Git remote is configured yet. The web export adds MATMI description and social title tags to `dist/index.html` after Expo's single-page export.
 
 ## 3D and AR assets
 
