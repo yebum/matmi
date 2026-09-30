@@ -24,7 +24,11 @@ create index if not exists food_experience_reviews_lookup
 
 alter table public.food_experience_reviews enable row level security;
 revoke all on table public.food_experience_reviews from public, anon, authenticated;
-grant select, insert on table public.food_experience_reviews to anon;
+grant select on table public.food_experience_reviews to anon;
+-- Anonymous inserts can only supply review fields. The database owns id, created_at, and is_demo.
+grant insert (food_id, culture, reminded_of, cultural_description,
+  familiarity_score, liking_score, matmi_accuracy_score)
+  on table public.food_experience_reviews to anon;
 
 create policy "Anyone can read anonymous experiences"
   on public.food_experience_reviews for select to anon using (true);

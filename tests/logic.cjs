@@ -16,6 +16,13 @@ const { modelAssetPaths, findAvailableModel } = require('../src/features/modelAs
 const { frameMapping, scanGuide, canvasBoxToVideo, videoBoxToViewport, detectLiveFoods, LiveDetectionTracker } = require('../src/features/liveScanner.ts');
 const { scannerOverlayLayout, smoothOverlayBox } = require('../src/features/scannerOverlayLayout.ts');
 const { emptyReviewDraft, validateReview, summarizeCommunity } = require('../src/features/communityLens.ts');
+const communitySql = fs.readFileSync(require('node:path').join(__dirname, '../supabase/migrations/20261001000000_community_lens.sql'), 'utf8');
+assert.match(communitySql, /alter table public\.food_experience_reviews enable row level security;/i);
+assert.match(communitySql, /grant select on table public\.food_experience_reviews to anon;/i);
+assert.match(communitySql, /grant insert \(food_id, culture, reminded_of, cultural_description,\s*familiarity_score, liking_score, matmi_accuracy_score\)\s*on table public\.food_experience_reviews to anon;/i);
+assert.doesNotMatch(communitySql, /grant (?:select, )?insert on table public\.food_experience_reviews to anon;/i);
+assert.match(communitySql, /for select to anon using \(true\)/i);
+assert.match(communitySql, /for insert to anon with check \(is_demo = false\)/i);
 const ids = text => detectSupportedFoods(text).map(food => food.id);
 const reviewDraft = { remindedOf: 'A savory hotteok', culturalDescription: '', familiarityScore: 7, likingScore: 8, matmiAccuracyScore: 9 };
 assert.equal(validateReview('langos', 'Korean', reviewDraft), null);

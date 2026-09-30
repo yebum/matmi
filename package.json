@@ -9,7 +9,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "export:web": "expo export --platform web && node scripts/add-web-metadata.cjs",
+    "export:web": "expo export --platform web --clear && node scripts/add-web-metadata.cjs",
     "test:logic": "node tests/logic.cjs",
     "preview:web": "node scripts/serve-dist.cjs"
   },
