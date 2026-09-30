@@ -1,0 +1,9 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="78" height="20" viewBox="0 0 78 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Status indicators">
+<circle id="Signal 1" cx="2.5" cy="10" r="2.5" fill="#111214"/>
+<circle id="Signal 2" cx="14.5" cy="10" r="2.5" fill="#111214"/>
+<g id="Battery">
+<rect x="24" y="3" width="28" height="14" rx="5" fill="#111214"/>
+</g>
+</g>
+</svg>

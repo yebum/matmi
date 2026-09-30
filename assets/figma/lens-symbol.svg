@@ -1,0 +1,8 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="170" height="170" viewBox="0 0 170 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Lens symbol">
+<rect x="0.5" y="0.5" width="169" height="169" rx="84.5" fill="white"/>
+<rect x="0.5" y="0.5" width="169" height="169" rx="84.5" stroke="#E8E9ED"/>
+<circle id="Plate" cx="68" cy="85" r="54.5" fill="white" stroke="#0D0E10" stroke-width="3"/>
+<circle id="Food accent" cx="141" cy="85" r="17" fill="#DDF45A"/>
+</g>
+</svg>
