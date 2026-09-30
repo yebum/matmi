@@ -7,8 +7,10 @@ require.extensions['.ts'] = (module, filename) => {
   module._compile(result.outputText, filename);
 };
 const { normalizeMenuText, detectSupportedFoods } = require('../src/features/recognition.ts');
-const { getSupportedFood } = require('../src/data/supportedFoods.ts');
-const { calculateTasteMatch } = require('../src/features/tasteMatch.ts');
+const { getSupportedFood, supportedFoods } = require('../src/data/supportedFoods.ts');
+const { calculateTasteMatch, allergenWarning } = require('../src/features/tasteMatch.ts');
+const { foodCultures, cultureFromLanguage, clampSensitivity, toggleAllergen, defaultSensitivities } = require('../src/data/personalization.ts');
+const { migrateProfile } = require('../src/features/profileMigration.ts');
 const { targetMenuImageSize } = require('../src/features/prepareMenuImage.ts');
 const { modelAssetPaths, findAvailableModel } = require('../src/features/modelAssets.ts');
 const { frameMapping, scanGuide, canvasBoxToVideo, videoBoxToViewport, detectLiveFoods, LiveDetectionTracker } = require('../src/features/liveScanner.ts');
@@ -24,10 +26,40 @@ assert.deepEqual(ids('GULYAS\nHURKA\nPAPRIKASH'), []);
 assert.deepEqual(ids('PHONE REPAIR\nPAD THAILAND'), []);
 assert.deepEqual(ids('떡볶이 9000\nผัดไทย 120'), ['tteokbokki', 'pad-thai']);
 const food = getSupportedFood('langos');
-const profile = { culture: 'Korean', likes: ['Cheese'], avoids: [] };
+assert.deepEqual(foodCultures.map(item => item.value), ['Korean', 'Vietnamese', 'Thai', 'Indonesian', 'Hungarian']);
+assert.equal(cultureFromLanguage('vi-VN'), 'Vietnamese');
+assert.equal(cultureFromLanguage('en-US'), null);
+assert.equal(clampSensitivity(-9), 0);
+assert.equal(clampSensitivity(13), 10);
+assert.equal(clampSensitivity(6.7), 7);
+assert.deepEqual(toggleAllergen(['nuts'], 'shellfish'), ['nuts', 'shellfish']);
+assert.deepEqual(toggleAllergen(['nuts', 'shellfish'], 'nuts'), ['shellfish']);
+assert.deepEqual(toggleAllergen(['nuts', 'shellfish'], 'none'), []);
+const oldProfile = migrateProfile({ culture: 'Korean', likes: ['Cheese'], avoids: ['Organ meat', 'Strong fish smell'], avoidOrganMeat: true });
+assert.equal(oldProfile.sensitivities.organMeat, 1);
+assert.deepEqual(oldProfile.avoids, ['Strong fish smell']);
+assert.equal(migrateProfile({ culture: 'Vietnamese', avoidOrganMeat: false }).sensitivities.organMeat, 6);
+assert.deepEqual(migrateProfile({ culture: 'Japanese' }).sensitivities, defaultSensitivities);
+assert.equal(migrateProfile({ sensitivities: { spicy: 99, rich: -3, organMeat: 2.8 } }).sensitivities.spicy, 10);
+assert.equal(migrateProfile({ sensitivities: { spicy: 99, rich: -3, organMeat: 2.8 } }).sensitivities.rich, 0);
+assert.equal(migrateProfile({ sensitivities: { spicy: 99, rich: -3, organMeat: 2.8 } }).sensitivities.organMeat, 3);
+const persisted = { culture: 'Vietnamese', likes: ['Cheese'], avoids: [], sensitivities: { spicy: 3, rich: 6, strongAroma: 4, unfamiliarTexture: 8, organMeat: 1 }, allergens: ['nuts', 'shellfish'] };
+assert.deepEqual(migrateProfile(JSON.parse(JSON.stringify(persisted))), persisted);
+assert.deepEqual(supportedFoods.map(item => item.id), ['tteokbokki', 'pho', 'pad-thai', 'nasi-goreng', 'langos']);
+for (const item of supportedFoods) {
+  for (const value of Object.values(item.sensoryProfile)) assert.ok(Number.isInteger(value) && value >= 0 && value <= 10);
+  assert.ok(Array.isArray(item.commonAllergens));
+}
+const profile = migrateProfile({ culture: 'Korean', likes: ['Cheese'], avoids: [] });
 const original = calculateTasteMatch(food, profile).score;
 assert.equal(calculateTasteMatch(food, profile).score, original);
 assert.ok(calculateTasteMatch(food, { ...profile, likes: [] }).score < original);
+assert.ok(calculateTasteMatch(getSupportedFood('tteokbokki'), { ...profile, sensitivities: { ...profile.sensitivities, spicy: 2 } }).score < calculateTasteMatch(getSupportedFood('tteokbokki'), { ...profile, sensitivities: { ...profile.sensitivities, spicy: 9 } }).score);
+const conflict = calculateTasteMatch(getSupportedFood('pad-thai'), { ...profile, allergens: ['nuts', 'shellfish'] });
+assert.deepEqual(conflict.allergenConflicts, ['nuts', 'shellfish']);
+assert.match(allergenWarning(conflict.allergenConflicts), /Peanuts \/ tree nuts.*Shellfish/);
+assert.ok(conflict.score < calculateTasteMatch(getSupportedFood('pad-thai'), profile).score);
+assert.deepEqual(calculateTasteMatch(food, profile).allergenConflicts, []);
 assert.deepEqual(targetMenuImageSize(1200, 800), { width: 1200, height: 800 });
 assert.deepEqual(targetMenuImageSize(8000, 6000), { width: 3200, height: 2400 });
 for (const [width, height] of [[320, 568], [390, 844], [430, 700], [844, 390]]) {
@@ -82,4 +114,4 @@ async function checkModelPaths() {
     assert.deepEqual(await findAvailableModel(food), { src: '/models/langos.glb', iosSrc: '/models/langos.usdz' });
   } finally { global.fetch = originalFetch; }
 }
-checkModelPaths().then(() => console.log('Recognition, Taste Match, image sizing, model paths, live boxes, and detection stability passed.')).catch(error => { console.error(error); process.exitCode = 1; });
+checkModelPaths().then(() => console.log('Personalization, recognition, Taste Match, image sizing, model paths, live boxes, and detection stability passed.')).catch(error => { console.error(error); process.exitCode = 1; });

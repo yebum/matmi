@@ -9,6 +9,7 @@ import { getSupportedFood } from '../../src/data/supportedFoods';
 import { useProfile } from '../../src/store/ProfileContext';
 import { colors as c } from '../../src/theme';
 import { FoodModelPreview } from '../../src/components/FoodModelPreview';
+import { AllergenWarning } from '../../src/components/AllergenWarning';
 
 export default function FoodDetail() {
   const router = useRouter();
@@ -22,10 +23,11 @@ export default function FoodDetail() {
   return <Screen nav="camera" scroll>
     <PageHeader title="Food Lens" onBack={() => router.back()} action={<Pressable accessibilityRole="button" accessibilityLabel="Save dish" onPress={() => saveDishToTry(dish.id)} style={[s.bookmark, savedDishIds.includes(dish.id) && { backgroundColor: c.paleLime }]}><Bookmark width={19} height={19} /></Pressable>} />
     <View style={s.titleBlock}><Text style={s.eyebrow}>{dish.country.toLocaleUpperCase()} · {dish.category}</Text><Text style={s.name}>{dish.name}</Text><View style={s.tags}>{[...dish.tasteTags, ...dish.textureTags].slice(0, 3).map((tag, index) => <TagChip key={tag} title={tag} blue={index === 1} />)}</View></View>
-    <View style={s.match}><View><Text style={s.matchLabel}>TASTE MATCH</Text><Text style={s.score}>{match.score}%</Text></View><View><Text style={s.fit}>{match.score >= 75 ? 'Strong fit' : 'Consider first'}</Text><Text style={s.fitDetail}>{dish.subtitle}</Text></View></View>
+    <AllergenWarning conflicts={match.allergenConflicts} />
+    <View style={s.match}><View><Text style={s.matchLabel}>TASTE MATCH</Text><Text style={s.score}>{match.score}%</Text></View><View><Text style={s.fit}>{match.allergenConflicts.length ? 'Check allergens' : match.score >= 75 ? 'Strong fit' : 'Consider first'}</Text><Text style={s.fitDetail}>{dish.subtitle}</Text></View></View>
     <View style={s.familiar}><Text style={s.sectionLabel}>MAKE IT FAMILIAR</Text><Text style={s.comparison}>{comparison}</Text><Text style={s.context}>{dish.description}</Text></View>
     <FoodModelPreview food={dish} />
-    <View style={[s.why, { height: undefined, minHeight: 110 }]}><Text style={s.whyTitle}>Why it matches you</Text>{match.positiveReasons.length === 0 && <Text style={s.reasonText}>A new taste to explore based on your profile.</Text>}{match.positiveReasons.map(reason => <View key={reason} style={s.reason}><View style={s.reasonIcon}><Check width={12} height={12} /></View><Text style={s.reasonText}>{reason}</Text></View>)}{[...match.warnings, ...dish.cautions].map(caution => <Text key={caution} style={s.caution}>{caution}</Text>)}</View>
+    <View style={[s.why, { height: undefined, minHeight: 110 }]}><Text style={s.whyTitle}>Why it matches you</Text>{match.positiveReasons.length === 0 && <Text style={s.reasonText}>A new taste to explore based on your profile.</Text>}{match.positiveReasons.slice(0, 3).map(reason => <View key={reason} style={s.reason}><View style={s.reasonIcon}><Check width={12} height={12} /></View><Text style={s.reasonText}>{reason}</Text></View>)}{[...match.warnings, ...dish.cautions].map(caution => <Text key={caution} style={s.caution}>{caution}</Text>)}</View>
     <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/ingredients/[id]', params: { id: dish.id } })} style={s.ingredients}><Text style={s.ingredientsLabel}>Typical ingredients</Text><Chevron width={17} height={17} /></Pressable>
     <View style={s.tryButton}><PrimaryButton title="Try this" onPress={() => router.push({ pathname: '/try/[id]', params: { id: dish.id } })} /></View>
   </Screen>;
@@ -42,9 +44,9 @@ const s = StyleSheet.create({
   comparison: { color: c.ink, fontSize: 17, lineHeight: 22, fontWeight: '600', marginBottom: 10 },
   context: { color: c.muted, fontSize: 12, lineHeight: 17 },
   why: { height: 138, borderRadius: 22, backgroundColor: c.light, padding: 16, gap: 10, marginBottom: 13 },
-  whyTitle: { color: c.ink, fontSize: 14, fontWeight: '600' }, reason: { flexDirection: 'row', alignItems: 'center', height: 24, gap: 9 },
+  whyTitle: { color: c.ink, fontSize: 14, fontWeight: '600' }, reason: { flexDirection: 'row', alignItems: 'center', minHeight: 24, gap: 9 },
   reasonIcon: { width: 20, height: 20, borderRadius: 10, backgroundColor: c.lime, alignItems: 'center', justifyContent: 'center' },
-  reasonText: { color: c.ink, fontSize: 12, fontWeight: '500' }, caution: { color: '#F28A3A', fontSize: 12, lineHeight: 17 },
+  reasonText: { color: c.ink, fontSize: 12, lineHeight: 17, fontWeight: '500', flexShrink: 1 }, caution: { color: '#B85037', fontSize: 12, lineHeight: 17 },
   ingredients: { height: 52, borderRadius: 16, borderWidth: 1, borderColor: c.line, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   ingredientsLabel: { color: c.ink, fontSize: 13, fontWeight: '500' }, tryButton: { marginTop: 14, marginBottom: 8 },
 });
