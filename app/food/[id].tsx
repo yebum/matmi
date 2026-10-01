@@ -16,7 +16,7 @@ export default function FoodDetail() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const dish = getSupportedFood(id);
-  const { culture, saveDishToTry, setSelectedDishId, savedDishIds, matchFor } = useProfile();
+  const { culture, saveDishToTry, setSelectedDishId, savedDishIds, triedFoodIds, markFoodTried, matchFor } = useProfile();
   useEffect(() => { if (dish) setSelectedDishId(dish.id); }, [dish?.id]);
   if (!dish) return <Screen><PageHeader title="Food Lens" onBack={() => router.back()} /><Text>Dish unavailable.</Text></Screen>;
   const comparison = dish.comparisons[culture] ?? dish.comparisons.default;
@@ -32,7 +32,7 @@ export default function FoodDetail() {
     <View style={s.why}><Text style={s.whyTitle}>Why it matches you</Text>{match.positiveReasons.length === 0 && <Text style={s.reasonText}>A new taste to explore based on your profile.</Text>}{match.positiveReasons.slice(0, 3).map(reason => <View key={reason} style={s.reason}><View style={s.reasonIcon}><Check width={12} height={12} /></View><Text style={s.reasonText}>{reason}</Text></View>)}{warnings.map((caution, index) => <Text key={caution} style={[s.caution, index === 0 && s.firstCaution]}>{caution}</Text>)}</View>
     <CommunityLens foodId={dish.id} culture={culture} onShare={() => router.push(`/review/${dish.id}` as never)} />
     <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/ingredients/[id]', params: { id: dish.id } })} style={s.ingredients}><Text style={s.ingredientsLabel}>Typical ingredients</Text><Chevron width={17} height={17} /></Pressable>
-    <View style={s.tryButton}><PrimaryButton title="Try this" onPress={() => router.push({ pathname: '/try/[id]', params: { id: dish.id } })} /></View>
+    <View style={s.tryButton}><PrimaryButton title={triedFoodIds.includes(dish.id) ? '✓ Added to your Food Journey' : 'I tried this'} onPress={() => markFoodTried(dish.id)} /></View>
   </Screen>;
 }
 const s = StyleSheet.create({

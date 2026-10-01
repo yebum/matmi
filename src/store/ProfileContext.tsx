@@ -3,13 +3,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getSupportedFood, type SupportedFood } from '../data/supportedFoods';
 import { calculateTasteMatch, type TasteProfile } from '../features/tasteMatch';
 import { initialProfile, migrateProfile } from '../features/profileMigration';
+import { markTried, migrateFoodJourney, recordReview, type FoodJourney } from '../features/foodJourney';
 import { clampSensitivity, cultureFromLanguage, defaultSensitivities, isFoodCulture, toggleAllergen as nextAllergens, type Allergen, type FoodCulture, type SensitivityKey } from '../data/personalization';
 import type { OCRResult } from '../services/ocr/ocrService';
 
 export type SelectedImage = { file: File; uri: string; name: string };
 export type SavedScan = { place: string; date: string; dishId: string };
 export type AnalysisStatus = 'idle' | 'loading' | 'reading' | 'matching' | 'complete' | 'error';
-type Persisted = { profile: TasteProfile; onboardingCompleted: boolean; savedScans: SavedScan[] };
+type Persisted = { profile: TasteProfile; onboardingCompleted: boolean; savedScans: SavedScan[] } & FoodJourney;
 type AppState = {
   ready: boolean; profile: TasteProfile; culture: FoodCulture; setCulture: (value: FoodCulture) => void;
   setSensitivity: (key: SensitivityKey, value: number) => void; toggleAllergen: (value: Allergen | 'none') => void; resetPersonalization: () => void;
@@ -22,6 +23,7 @@ type AppState = {
   analysisError: string | null; setAnalysisError: (message: string | null) => void;
   selectedDishId: string | null; setSelectedDishId: (id: string | null) => void;
   savedScans: SavedScan[]; savedDishIds: string[]; saveDishToTry: (id: string) => void;
+  triedFoodIds: string[]; myReviewIds: string[]; markFoodTried: (id: string) => void; recordSubmittedReview: (foodId: string, reviewId: string) => void;
   matchFor: (food: SupportedFood) => ReturnType<typeof calculateTasteMatch>;
 };
 const Context = createContext<AppState | null>(null);
@@ -32,6 +34,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<TasteProfile>(() => ({ ...initialProfile, culture: typeof navigator === 'undefined' ? 'Korean' : cultureFromLanguage(navigator.language) ?? 'Korean', sensitivities: { ...defaultSensitivities }, allergens: [] }));
   const [onboardingCompleted, setOnboardingCompleted] = useState(false);
   const [savedScans, setSavedScans] = useState<SavedScan[]>([]);
+  const [journey, setJourney] = useState<FoodJourney>({ triedFoodIds: [], myReviewIds: [] });
   const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(null);
   const [ocrResult, setOcrResult] = useState<OCRResult | null>(null);
   const [detectedFoods, setDetectedFoods] = useState<SupportedFood[]>([]);
@@ -45,10 +48,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         if (saved.profile) setProfile(migrateProfile(saved.profile));
         if (saved.onboardingCompleted) setOnboardingCompleted(true);
         if (Array.isArray(saved.savedScans)) setSavedScans(saved.savedScans.filter(scan => !!getSupportedFood(scan.dishId)));
+        setJourney(migrateFoodJourney(saved));
       }
     }).catch(() => {}).finally(() => setReady(true));
   }, []);
-  useEffect(() => { if (ready) AsyncStorage.setItem(storageKey, JSON.stringify({ profile, onboardingCompleted, savedScans })).catch(() => {}); }, [ready, profile, onboardingCompleted, savedScans]);
+  useEffect(() => { if (ready) AsyncStorage.setItem(storageKey, JSON.stringify({ profile, onboardingCompleted, savedScans, ...journey })).catch(() => {}); }, [ready, profile, onboardingCompleted, savedScans, journey]);
   const setCulture = (culture: FoodCulture) => { if (isFoodCulture(culture)) setProfile(current => ({ ...current, culture })); };
   const setSensitivity = (key: SensitivityKey, value: number) => setProfile(current => ({ ...current, sensitivities: { ...current.sensitivities, [key]: clampSensitivity(value, current.sensitivities[key]) } }));
   const toggleAllergen = (value: Allergen | 'none') => setProfile(current => ({ ...current, allergens: nextAllergens(current.allergens, value) }));
@@ -70,7 +74,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     ready, profile, culture: profile.culture, setCulture, setSensitivity, toggleAllergen, resetPersonalization, toggleLike, toggleAvoid,
     onboardingCompleted, completeOnboarding: () => setOnboardingCompleted(true), selectedImage, selectImage, clearImage,
     ocrResult, setOcrResult, detectedFoods, setDetectedFoods, analysisStatus, setAnalysisStatus, analysisError, setAnalysisError,
-    selectedDishId, setSelectedDishId, savedScans, savedDishIds, saveDishToTry, matchFor: food => calculateTasteMatch(food, profile),
+    selectedDishId, setSelectedDishId, savedScans, savedDishIds, saveDishToTry,
+    triedFoodIds: journey.triedFoodIds, myReviewIds: journey.myReviewIds,
+    markFoodTried: id => setJourney(current => markTried(current, id)),
+    recordSubmittedReview: (foodId, reviewId) => setJourney(current => recordReview(current, foodId, reviewId)),
+    matchFor: food => calculateTasteMatch(food, profile),
   }}>{ready ? children : null}</Context.Provider>;
 }
 export function useProfile(): AppState {

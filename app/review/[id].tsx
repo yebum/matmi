@@ -13,7 +13,7 @@ export default function ReviewFood() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const food = getSupportedFood(id);
-  const { culture } = useProfile();
+  const { culture, recordSubmittedReview } = useProfile();
   const [draft, setDraft] = useState<ReviewDraft>(emptyReviewDraft);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +29,8 @@ export default function ReviewFood() {
     setSubmitting(true);
     setError(null);
     try {
-      await submitCommunityReview(food.id, culture, draft);
+      const reviewId = await submitCommunityReview(food.id, culture, draft);
+      recordSubmittedReview(food.id, reviewId);
       setDraft(emptyReviewDraft());
       setSuccess(true);
     } catch {

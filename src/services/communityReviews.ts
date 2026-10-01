@@ -21,6 +21,19 @@ type ReviewRow = {
   familiarity_score: number; liking_score: number; matmi_accuracy_score: number; created_at: string; is_demo: boolean;
 };
 
+export type MyReview = Pick<ExperienceReview, 'id' | 'foodId' | 'remindedOf' | 'likingScore' | 'createdAt'>;
+
+export async function listMyReviews(ids: string[]): Promise<MyReview[]> {
+  if (ids.length === 0) return [];
+  const supabase = getClient();
+  if (!supabase) throw new Error('Community sharing is not configured yet.');
+  const { data, error } = await supabase.from('food_experience_reviews')
+    .select('id,food_id,reminded_of,liking_score,created_at')
+    .in('id', ids).order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(row => ({ id: row.id, foodId: row.food_id, remindedOf: row.reminded_of, likingScore: row.liking_score, createdAt: row.created_at }));
+}
+
 export async function listCommunityReviews(foodId: string, culture: FoodCulture): Promise<ExperienceReview[]> {
   const supabase = getClient();
   if (!supabase) throw new Error('Community sharing is not configured yet.');
@@ -39,15 +52,17 @@ export async function listCommunityReviews(foodId: string, culture: FoodCulture)
   }
 }
 
-export async function submitCommunityReview(foodId: string, culture: FoodCulture, draft: ReviewDraft): Promise<void> {
+export async function submitCommunityReview(foodId: string, culture: FoodCulture, draft: ReviewDraft): Promise<string> {
   const validation = validateReview(foodId, culture, draft);
   if (validation) throw new Error(validation);
   const supabase = getClient();
   if (!supabase) throw new Error('Community sharing is not configured yet. Please try again later.');
-  const { error } = await supabase.from('food_experience_reviews').insert({
+  const { data, error } = await supabase.from('food_experience_reviews').insert({
     food_id: foodId, culture: culture.toLowerCase(), reminded_of: cleanReviewText(draft.remindedOf),
     cultural_description: cleanReviewText(draft.culturalDescription), familiarity_score: draft.familiarityScore,
     liking_score: draft.likingScore, matmi_accuracy_score: draft.matmiAccuracyScore,
-  });
+  }).select('id').single();
   if (error) throw error;
+  if (!data?.id) throw new Error('Review saved without a returned ID.');
+  return data.id;
 }

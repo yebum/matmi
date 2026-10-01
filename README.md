@@ -27,7 +27,7 @@ The live scanner uses a separate persistent English Tesseract worker with sparse
 
 `src/features/recognition.ts` normalizes case, Latin accents, punctuation, and whitespace while keeping Korean and Thai text. It matches complete aliases on OCR lines, deduplicates dishes, and never creates cards for unsupported names. `src/data/supportedFoods.ts` is the only active five-food catalog. Typical ingredient and caution descriptions are general references; restaurant recipes must be confirmed with the restaurant.
 
-`src/features/tasteMatch.ts` calculates deterministic scores: base 56, +8 for each preferred ingredient/taste/texture/trait match, −28 for each matching avoid signal, clamped to 0–100. The result includes reasons and warnings. Profile edits change scores immediately. `src/store/ProfileContext.tsx` persists the taste profile, onboarding completion, and saved dishes through AsyncStorage on web (browser local storage). Photos, OCR text, and scan results stay in memory only and disappear on refresh.
+`src/features/tasteMatch.ts` calculates deterministic scores: base 56, +8 for each preferred ingredient/taste/texture/trait match, −28 for each matching avoid signal, clamped to 0–100. The result includes reasons and warnings. Profile edits change scores immediately. `src/store/ProfileContext.tsx` persists the taste profile, onboarding completion, saved dishes, tried food IDs, and successful review IDs through AsyncStorage on web (browser local storage). Photos, OCR text, and scan results stay in memory only and disappear on refresh.
 
 ## Test fixtures
 
@@ -36,6 +36,8 @@ The live scanner uses a separate persistent English Tesseract worker with sparse
 ## Community Lens
 
 Food Lens now shows anonymous experiences for the selected dish and the profile's culture. The review form accepts a short cultural comparison and description plus three 0–10 ratings. At least one meaningful text response is required; no account, name, or contact information is requested. The browser does not store community reviews locally. After a successful submission, returning to Food Lens reloads the community data. A failed submission keeps the form values for retry.
+
+My MATMI stores the returned IDs of successful submissions on this browser/device. Its Reviews tab fetches only those IDs, and a successful review also marks the dish tried. Older anonymous reviews cannot be attributed to this device; no cross-device sync is available without accounts. Saved and Tried remain independent.
 
 In the existing MATMI Supabase project, open **SQL Editor**, paste the full contents of `supabase/migrations/20261001000000_community_lens.sql`, and run it once. Copy `.env.example` to ignored `.env.local` and set the project's public URL and anonymous/publishable key. The client uses `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`. In **Vercel → MATMI project → Settings → Environment Variables**, set those same two public values for Production, then redeploy the existing project. The web export clears Metro's cache so newly set values are included in the bundle. Never use a service-role/secret key in a public environment variable. The table enables RLS, grants anonymous SELECT and INSERT on review input columns only, restricts reviews to the five dishes/cultures and valid scores/text, and does not grant anonymous UPDATE or DELETE. The database generates review IDs and timestamps. Anonymous posting can still attract spam; a public launch would need additional server-side rate limiting/moderation.
 
